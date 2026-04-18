@@ -1,0 +1,306 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Control de Obra</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:system-ui,-apple-system,sans-serif;background:#f5f5f5;color:#1a1a1a;min-height:100vh}
+.app{max-width:480px;margin:0 auto;background:#fff;min-height:100vh;display:flex;flex-direction:column}
+.header{background:#1F3864;color:#fff;padding:16px 20px}
+.header h1{font-size:17px;font-weight:600}
+.header p{font-size:12px;opacity:0.7;margin-top:2px}
+.tabs{display:flex;border-bottom:1px solid #e5e5e5;background:#fff;position:sticky;top:0;z-index:10}
+.tab{flex:1;padding:12px 4px;font-size:12px;cursor:pointer;color:#888;border-bottom:2px solid transparent;background:none;border-top:none;border-left:none;border-right:none;font-family:inherit;text-align:center}
+.tab.active{color:#1F3864;border-bottom:2px solid #1F3864;font-weight:600}
+.panel{display:none;padding:16px;flex:1}
+.panel.active{display:block}
+.form-group{display:flex;flex-direction:column;gap:5px;margin-bottom:12px}
+label{font-size:12px;color:#555;font-weight:500}
+input,select,textarea{width:100%;padding:10px 12px;border:1px solid #ddd;border-radius:8px;font-size:14px;background:#fff;color:#1a1a1a;font-family:inherit;-webkit-appearance:none}
+input:focus,select:focus{outline:none;border-color:#2E75B6}
+.btn{background:#1F3864;color:#fff;border:none;padding:13px;border-radius:8px;font-size:15px;cursor:pointer;width:100%;margin-top:4px;font-family:inherit;font-weight:600}
+.btn:active{background:#2E75B6}
+.btn:disabled{opacity:0.5}
+.toast{display:none;padding:12px 14px;border-radius:8px;font-size:13px;margin-bottom:14px;text-align:center}
+.toast.ok{background:#d1fae5;color:#065f46;border:1px solid #6ee7b7}
+.toast.err{background:#fee2e2;color:#991b1b;border:1px solid #fca5a5}
+.metric-row{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:16px}
+.metric{background:#f0f4f8;border-radius:10px;padding:12px 14px}
+.metric-label{font-size:11px;color:#666;margin-bottom:4px}
+.metric-value{font-size:22px;font-weight:600;color:#1F3864}
+.metric-sub{font-size:11px;color:#888;margin-top:2px}
+.metric.full{grid-column:1/-1}
+.section-title{font-size:11px;font-weight:600;color:#888;margin:16px 0 8px;text-transform:uppercase;letter-spacing:0.06em}
+.proj-filter{display:flex;gap:6px;margin-bottom:14px;flex-wrap:wrap}
+.proj-btn{padding:6px 12px;border:1px solid #ddd;border-radius:20px;font-size:12px;cursor:pointer;background:#fff;color:#555;font-family:inherit}
+.proj-btn.active{background:#1F3864;color:#fff;border-color:#1F3864}
+.etapa-row{padding:10px 0;border-bottom:1px solid #f0f0f0}
+.etapa-row:last-child{border-bottom:none}
+.etapa-header{display:flex;justify-content:space-between;font-size:13px;margin-bottom:6px}
+.etapa-name{font-weight:500;color:#1a1a1a}
+.etapa-amt{color:#555;font-size:12px}
+.bar-wrap{background:#e5e5e5;border-radius:4px;height:6px;overflow:hidden}
+.bar-fill{height:6px;border-radius:4px;background:#2E75B6;transition:width 0.4s}
+.bar-fill.over{background:#dc2626}
+.gasto-item{background:#fff;border:1px solid #e5e5e5;border-radius:10px;padding:12px;margin-bottom:8px;display:flex;justify-content:space-between;align-items:flex-start}
+.gasto-left{flex:1}
+.gasto-concepto{font-size:14px;font-weight:500;color:#1a1a1a}
+.gasto-meta{font-size:11px;color:#888;margin-top:3px;line-height:1.5}
+.gasto-right{text-align:right;flex-shrink:0;margin-left:12px}
+.gasto-monto{font-size:15px;font-weight:600;color:#1F3864}
+.badge{display:inline-block;padding:2px 8px;border-radius:10px;font-size:11px;margin-top:4px}
+.badge.pend{background:#fef3c7;color:#92400e}
+.badge.pago{background:#d1fae5;color:#065f46}
+.pend-item{background:#fffbeb;border:1px solid #fcd34d;border-radius:10px;padding:12px;margin-bottom:8px;display:flex;justify-content:space-between;align-items:center}
+.pend-info{flex:1}
+.pend-concepto{font-size:13px;font-weight:500;color:#1a1a1a}
+.pend-sub{font-size:11px;color:#888;margin-top:2px}
+.pend-monto{font-size:15px;font-weight:600;color:#b45309;flex-shrink:0;margin-left:12px}
+.rent-card{background:#fff;border:1px solid #e5e5e5;border-radius:10px;padding:14px;margin-bottom:12px}
+.rent-title{font-size:13px;font-weight:600;color:#1F3864;margin-bottom:10px;padding-bottom:8px;border-bottom:1px solid #f0f0f0}
+.rent-row{display:flex;justify-content:space-between;font-size:13px;padding:5px 0;border-bottom:1px solid #f9f9f9}
+.rent-row:last-child{border-bottom:none;font-weight:600;padding-top:8px;margin-top:4px}
+.pos{color:#059669}
+.neg{color:#dc2626}
+.empty{text-align:center;color:#aaa;font-size:13px;padding:40px 20px;font-style:italic}
+.loading{text-align:center;color:#aaa;font-size:13px;padding:30px}
+.pv-group{margin-bottom:12px}
+.divider{height:1px;background:#f0f0f0;margin:4px 0}
+</style>
+</head>
+<body>
+<div class="app">
+  <div class="header">
+    <h1>Control de Obra</h1>
+    <p id="header-sub">Gestión de proyectos de construcción</p>
+  </div>
+
+  <div class="tabs">
+    <button class="tab active" onclick="showTab('form')">Registrar</button>
+    <button class="tab" onclick="showTab('resumen')">Resumen</button>
+    <button class="tab" onclick="showTab('pendientes')">Pendientes</button>
+    <button class="tab" onclick="showTab('rentabilidad')">Resultados</button>
+  </div>
+
+  <div id="tab-form" class="panel active">
+    <div id="toast" class="toast"></div>
+    <div class="form-group">
+      <label>Proyecto</label>
+      <select id="f-proyecto">
+        <option value="">Seleccionar...</option>
+        <option>Proyecto 1</option>
+        <option>Proyecto 2</option>
+        <option>Proyecto 3</option>
+      </select>
+    </div>
+    <div class="form-group">
+      <label>Etapa</label>
+      <select id="f-etapa">
+        <option value="">Seleccionar...</option>
+        <option>Preliminares</option>
+        <option>Cimentación</option>
+        <option>Estructura</option>
+        <option>Mampostería</option>
+        <option>Instalaciones</option>
+        <option>Acabados</option>
+        <option>Exteriores</option>
+        <option>Administrativo</option>
+      </select>
+    </div>
+    <div class="form-group">
+      <label>Tipo de gasto</label>
+      <select id="f-tipo">
+        <option>Obra</option>
+        <option>Administrativo</option>
+      </select>
+    </div>
+    <div class="form-group">
+      <label>Proveedor</label>
+      <input type="text" id="f-proveedor" placeholder="Ferretería, contratista...">
+    </div>
+    <div class="form-group">
+      <label>Concepto *</label>
+      <input type="text" id="f-concepto" placeholder="Cemento 10 sacos, mano de obra...">
+    </div>
+    <div class="form-group">
+      <label>Monto ($) *</label>
+      <input type="number" id="f-monto" placeholder="0.00" min="0" step="0.01" inputmode="decimal">
+    </div>
+    <div class="form-group">
+      <label>Estado</label>
+      <select id="f-estado">
+        <option value="Pagado">Pagado</option>
+        <option value="Pendiente">Pendiente de pago</option>
+      </select>
+    </div>
+    <div class="form-group">
+      <label>Número de factura (opcional)</label>
+      <input type="text" id="f-factura" placeholder="FAC-001" inputmode="text">
+    </div>
+    <button class="btn" id="btn-reg" onclick="registrar()">Registrar gasto</button>
+  </div>
+
+  <div id="tab-resumen" class="panel">
+    <div class="metric-row" id="metrics-row"><div class="loading">Cargando...</div></div>
+    <div class="proj-filter" id="proj-filter"></div>
+    <div class="section-title">Gasto por etapa</div>
+    <div id="etapa-list"></div>
+    <div class="section-title" style="margin-top:20px">Últimos registros</div>
+    <div id="gastos-list"></div>
+  </div>
+
+  <div id="tab-pendientes" class="panel">
+    <div class="section-title">Facturas pendientes de pago</div>
+    <div id="pend-list"><div class="loading">Cargando...</div></div>
+  </div>
+
+  <div id="tab-rentabilidad" class="panel">
+    <div class="section-title">Precio de venta estimado</div>
+    <div class="pv-group"><label style="font-size:12px;color:#555;font-weight:500;display:block;margin-bottom:5px">Proyecto 1 ($)</label><input type="number" id="pv1" value="170000" onchange="renderRent()" style="width:100%;padding:10px 12px;border:1px solid #ddd;border-radius:8px;font-size:14px"></div>
+    <div class="pv-group"><label style="font-size:12px;color:#555;font-weight:500;display:block;margin-bottom:5px">Proyecto 2 ($)</label><input type="number" id="pv2" value="170000" onchange="renderRent()" style="width:100%;padding:10px 12px;border:1px solid #ddd;border-radius:8px;font-size:14px"></div>
+    <div class="pv-group"><label style="font-size:12px;color:#555;font-weight:500;display:block;margin-bottom:5px">Proyecto 3 ($)</label><input type="number" id="pv3" value="170000" onchange="renderRent()" style="width:100%;padding:10px 12px;border:1px solid #ddd;border-radius:8px;font-size:14px"></div>
+    <div id="rent-grid"><div class="loading">Cargando...</div></div>
+  </div>
+</div>
+
+<script>
+const SB_URL = 'https://pjhyqpinpebddwohuhqq.supabase.co';
+const SB_KEY = 'sb_publishable_KIr1up5DRZT9XN8V8GOCJg_yAxTpyXn';
+const HDRS = {'apikey':SB_KEY,'Authorization':'Bearer '+SB_KEY,'Content-Type':'application/json'};
+
+const ETAPAS = ['Preliminares','Cimentación','Estructura','Mampostería','Instalaciones','Acabados','Exteriores','Administrativo'];
+const PROYECTOS = ['Proyecto 1','Proyecto 2','Proyecto 3'];
+const PRESUP_ETAPA = {Preliminares:3000,Cimentación:18000,Estructura:25000,Mampostería:12000,Instalaciones:15000,Acabados:18000,Exteriores:5000,Administrativo:4000};
+const PRESUP_TOTAL = 100000;
+
+let gastos = [];
+let filtro = 'Todos';
+
+function fmt(n){return '$'+Number(n||0).toLocaleString('es-EC',{minimumFractionDigits:2,maximumFractionDigits:2});}
+
+async function cargar(){
+  try{
+    const r = await fetch(`${SB_URL}/rest/v1/gastos?select=*&order=created_at.desc`,{headers:HDRS});
+    if(!r.ok) throw new Error();
+    gastos = await r.json();
+  }catch(e){ gastos=[]; }
+}
+
+function showTab(id){
+  document.querySelectorAll('.tab').forEach((t,i)=>t.classList.toggle('active',['form','resumen','pendientes','rentabilidad'][i]===id));
+  document.querySelectorAll('.panel').forEach(p=>p.classList.remove('active'));
+  document.getElementById('tab-'+id).classList.add('active');
+  if(id==='resumen') cargar().then(renderResumen);
+  if(id==='pendientes') cargar().then(renderPendientes);
+  if(id==='rentabilidad') cargar().then(renderRent);
+}
+
+async function registrar(){
+  const proyecto = document.getElementById('f-proyecto').value;
+  const etapa    = document.getElementById('f-etapa').value;
+  const tipo     = document.getElementById('f-tipo').value;
+  const proveedor= document.getElementById('f-proveedor').value.trim();
+  const concepto = document.getElementById('f-concepto').value.trim();
+  const monto    = parseFloat(document.getElementById('f-monto').value);
+  const estado   = document.getElementById('f-estado').value;
+  const factura  = document.getElementById('f-factura').value.trim();
+  if(!proyecto||!etapa||!concepto||isNaN(monto)||monto<=0){toast('Completa proyecto, etapa, concepto y monto.','err');return;}
+  const btn=document.getElementById('btn-reg');
+  btn.disabled=true; btn.textContent='Guardando...';
+  const fecha=new Date().toLocaleDateString('es-EC');
+  try{
+    const r=await fetch(`${SB_URL}/rest/v1/gastos`,{method:'POST',headers:{...HDRS,'Prefer':'return=minimal'},body:JSON.stringify({proyecto,etapa,tipo,proveedor,concepto,monto,estado,factura,fecha})});
+    if(!r.ok) throw new Error();
+    ['f-proyecto','f-etapa','f-proveedor','f-concepto','f-monto','f-factura'].forEach(id=>document.getElementById(id).value='');
+    document.getElementById('f-estado').value='Pagado';
+    toast('Gasto registrado correctamente.','ok');
+  }catch(e){toast('Error al guardar. Verifica tu conexión.','err');}
+  btn.disabled=false; btn.textContent='Registrar gasto';
+}
+
+function toast(msg,type){
+  const t=document.getElementById('toast');
+  t.textContent=msg; t.className='toast '+type; t.style.display='block';
+  setTimeout(()=>t.style.display='none',3000);
+}
+
+function renderResumen(){
+  const gF=filtro==='Todos'?gastos:gastos.filter(g=>g.proyecto===filtro);
+  const nP=filtro==='Todos'?3:1;
+  const tot=gF.reduce((a,g)=>a+(g.monto||0),0);
+  const pres=PRESUP_TOTAL*nP;
+  const pend=gF.filter(g=>g.estado==='Pendiente').length;
+  const pct=pres>0?Math.round(tot/pres*100):0;
+  document.getElementById('metrics-row').innerHTML=`
+    <div class="metric"><div class="metric-label">Total gastado</div><div class="metric-value">${fmt(tot)}</div><div class="metric-sub">de ${fmt(pres)} presupuestado</div></div>
+    <div class="metric"><div class="metric-label">Disponible</div><div class="metric-value">${fmt(Math.max(0,pres-tot))}</div><div class="metric-sub">${pct}% ejecutado</div></div>
+    <div class="metric full"><div class="metric-label">Facturas pendientes de pago</div><div class="metric-value">${pend}</div></div>`;
+  document.getElementById('proj-filter').innerHTML=['Todos',...PROYECTOS].map(p=>`<button class="proj-btn ${filtro===p?'active':''}" onclick="setFiltro('${p}')">${p}</button>`).join('');
+  document.getElementById('etapa-list').innerHTML=ETAPAS.map(et=>{
+    const pE=(PRESUP_ETAPA[et]||0)*nP;
+    const gE=gF.filter(g=>g.etapa===et).reduce((a,g)=>a+(g.monto||0),0);
+    const pc=pE>0?Math.min(gE/pE,1):0;
+    const ov=gE>pE&&pE>0;
+    return `<div class="etapa-row">
+      <div class="etapa-header"><span class="etapa-name">${et}</span><span class="etapa-amt">${fmt(gE)} / ${fmt(pE)}</span></div>
+      <div class="bar-wrap"><div class="bar-fill ${ov?'over':''}" style="width:${Math.round(pc*100)}%"></div></div>
+    </div>`;
+  }).join('');
+  const gl=document.getElementById('gastos-list');
+  if(!gF.length){gl.innerHTML='<div class="empty">No hay gastos registrados aún.</div>';return;}
+  gl.innerHTML=gF.slice(0,10).map(g=>`
+    <div class="gasto-item">
+      <div class="gasto-left">
+        <div class="gasto-concepto">${g.concepto}</div>
+        <div class="gasto-meta">${g.proyecto} · ${g.etapa} · ${g.fecha}${g.proveedor?' · '+g.proveedor:''}</div>
+      </div>
+      <div class="gasto-right">
+        <div class="gasto-monto">${fmt(g.monto)}</div>
+        <span class="badge ${g.estado==='Pendiente'?'pend':'pago'}">${g.estado}</span>
+      </div>
+    </div>`).join('');
+}
+
+function setFiltro(p){filtro=p;renderResumen();}
+
+function renderPendientes(){
+  const pends=gastos.filter(g=>g.estado==='Pendiente');
+  const pl=document.getElementById('pend-list');
+  if(!pends.length){pl.innerHTML='<div class="empty">No hay facturas pendientes.</div>';return;}
+  pl.innerHTML=pends.map(g=>`
+    <div class="pend-item">
+      <div class="pend-info">
+        <div class="pend-concepto">${g.concepto}${g.proveedor?' — '+g.proveedor:''}</div>
+        <div class="pend-sub">${g.proyecto} · ${g.etapa} · ${g.fecha}${g.factura?' · Factura: '+g.factura:''}</div>
+      </div>
+      <div class="pend-monto">${fmt(g.monto)}</div>
+    </div>`).join('');
+}
+
+function renderRent(){
+  const pvs=[
+    parseFloat(document.getElementById('pv1')?.value)||0,
+    parseFloat(document.getElementById('pv2')?.value)||0,
+    parseFloat(document.getElementById('pv3')?.value)||0
+  ];
+  document.getElementById('rent-grid').innerHTML=PROYECTOS.map((p,i)=>{
+    const g=gastos.filter(x=>x.proyecto===p).reduce((a,x)=>a+(x.monto||0),0);
+    const pv=pvs[i];
+    const uR=pv-g;
+    const mg=pv>0?Math.round(uR/pv*100):0;
+    return `<div class="rent-card">
+      <div class="rent-title">${p}</div>
+      <div class="rent-row"><span>Precio de venta</span><span>${fmt(pv)}</span></div>
+      <div class="rent-row"><span>Presupuesto</span><span>${fmt(PRESUP_TOTAL)}</span></div>
+      <div class="rent-row"><span>Gasto real acumulado</span><span>${fmt(g)}</span></div>
+      <div class="divider"></div>
+      <div class="rent-row"><span>Utilidad estimada</span><span class="${uR>=0?'pos':'neg'}">${fmt(uR)}</span></div>
+      <div class="rent-row"><span>Margen</span><span class="${mg>=0?'pos':'neg'}">${mg}%</span></div>
+    </div>`;
+  }).join('');
+}
+</script>
+</body>
+</html>
